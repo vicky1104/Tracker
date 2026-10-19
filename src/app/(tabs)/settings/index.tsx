@@ -144,6 +144,33 @@ export default function SettingsScreen() {
           value={settings.remindersEnabled}
           onValueChange={(remindersEnabled) => void update({ remindersEnabled })}
         />
+        {isSupabaseConfigured && user && (
+          <>
+            <Divider inset={spacing.lg} />
+            <SwitchRow
+              icon="cloud"
+              title="Streak protection"
+              subtitle={
+                limits.cloudSync
+                  ? 'A push if a streak is about to break and you haven’t checked in yet'
+                  : 'Needs cloud sync (Premium) so the server sees today’s progress'
+              }
+              value={settings.streakNudges}
+              disabled={!limits.cloudSync}
+              onValueChange={(streakNudges) => void update({ streakNudges })}
+            />
+            {settings.streakNudges && limits.cloudSync && (
+              <View style={styles.timeRow}>
+                <Text style={styles.flex}>Streak check time</Text>
+                <TimeField
+                  label="Streak protection time"
+                  value={settings.streakNudgeTime}
+                  onChange={(streakNudgeTime) => void update({ streakNudgeTime })}
+                />
+              </View>
+            )}
+          </>
+        )}
         <Divider inset={spacing.lg} />
         {(['morning', 'afternoon', 'evening'] as const).map((slot) => (
           <View key={slot} style={styles.timeRow}>

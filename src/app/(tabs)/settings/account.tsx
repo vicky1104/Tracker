@@ -16,6 +16,7 @@ import { getSettings } from '@/db/settings';
 import { wipeLocalData } from '@/db/maintenance';
 import { errorMessage } from '@/lib/errors';
 import { deleteAccount, signOut, useAuth } from '@/services/auth';
+import { unregisterPushToken } from '@/services/push';
 import { syncNow } from '@/services/sync';
 import { showToast, useAppStore } from '@/state/app-store';
 import { spacing } from '@/theme/tokens';
@@ -122,7 +123,14 @@ export default function AccountScreen() {
             onPress={() =>
               Alert.alert('Sign out?', 'Your habits stay on this device. Changes made while signed out sync the next time you sign in.', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Sign out', onPress: () => void signOut().catch((e) => showToast({ message: errorMessage(e), tone: 'error' })) },
+                {
+                  text: 'Sign out',
+                  onPress: () =>
+                    void unregisterPushToken(db)
+                      .catch(() => undefined)
+                      .then(signOut)
+                      .catch((e) => showToast({ message: errorMessage(e), tone: 'error' })),
+                },
               ])
             }
           />

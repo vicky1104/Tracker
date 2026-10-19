@@ -142,6 +142,10 @@ export interface UserSettings {
   focusAreas: HabitCategory[];
   defaultReminderTimes: Record<Exclude<TimeOfDay, 'anytime'>, string>;
   remindersEnabled: boolean;
+  /** Server push when a streak is about to break (needs an account with sync). */
+  streakNudges: boolean;
+  /** Local time (HH:MM) of the streak nudge. */
+  streakNudgeTime: string;
   timeZone: string;
 }
 

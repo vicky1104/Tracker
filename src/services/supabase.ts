@@ -54,6 +54,9 @@ export function getSupabase(): SupabaseClient | null {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
+        // PKCE for OAuth and email links: the code is exchanged in-app with a verifier
+        // that never leaves the device.
+        flowType: 'pkce',
       },
     });
     // Only refresh tokens while the app is in the foreground.

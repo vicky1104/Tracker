@@ -25,7 +25,11 @@ jest.mock('@/services/auth', () => ({
   signOut: jest.fn(),
   sendPasswordReset: jest.fn(),
   deleteAccount: jest.fn(),
+  signInWithGoogle: jest.fn(),
+  signInWithApple: jest.fn(),
+  loadAppleAuthentication: () => Promise.resolve(null),
 }));
+jest.mock('@/services/push', () => ({ unregisterPushToken: jest.fn() }));
 
 const wrap = (ui: ReactNode) => (
   <ThemeProvider preference="light" accent="sage" density="comfortable">
@@ -40,5 +44,6 @@ describe('Account screen (backend configured, signed out)', () => {
     expect(screen.getByLabelText('Password')).toBeTruthy();
     expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
     expect(screen.getByText('Create account')).toBeTruthy();
+    expect(screen.getByText('Continue with Google')).toBeTruthy();
   });
 });

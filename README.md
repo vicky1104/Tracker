@@ -16,12 +16,14 @@ Supabase (auth + sync), the AI planner and RevenueCat subscriptions are optional
 6. [Reminders](#reminders)
 7. [Offline-first sync](#offline-first-sync)
 8. [Configuring Supabase](#configuring-supabase)
-9. [Configuring the AI planner](#configuring-the-ai-planner)
-10. [Configuring subscriptions (RevenueCat)](#configuring-subscriptions-revenuecat)
-11. [Building for Android & iOS (EAS)](#building-for-android--ios-eas)
-12. [Testing](#testing)
-13. [Implemented vs deferred](#implemented-vs-deferred)
-14. [Production-readiness checklist](#production-readiness-checklist)
+9. [Sign-in providers (Google & Apple)](#sign-in-providers-google--apple)
+10. [Server push: streak protection](#server-push-streak-protection)
+11. [Configuring the AI planner](#configuring-the-ai-planner)
+12. [Configuring subscriptions (RevenueCat)](#configuring-subscriptions-revenuecat)
+13. [Building for Android & iOS (EAS)](#building-for-android--ios-eas)
+14. [Testing](#testing)
+15. [Implemented vs deferred](#implemented-vs-deferred)
+16. [Production-readiness checklist](#production-readiness-checklist)
 
 ---
 
@@ -163,6 +165,35 @@ Known trade-off: LWW depends on device clocks; a device with a badly wrong clock
 
 RLS: every user-owned table checks `user_id = auth.uid()`; children additionally check that the parent list/habit belongs to the caller. Entitlements, AI usage and config are read-only for clients.
 
+## Sign-in providers (Google & Apple)
+
+All sign-in methods use Supabase Auth, so accounts, RLS and sync work the same whichever one a user picks. Email + password, password reset (in-app `reset-password` screen) and email confirmation (`auth-callback`) are built in; links return to the app through the `habitflow://` scheme using PKCE.
+
+| Provider | How it works in the app | Setup |
+|---|---|---|
+| **Google** (iOS & Android) | `signInWithOAuth` → secure in-app browser (`openAuthSessionAsync`) → PKCE code exchange | Google Cloud Console: create an OAuth **Web** client; add `https://<ref>.supabase.co/auth/v1/callback` as an authorised redirect URI. Supabase → Authentication → Providers → Google: paste client ID + secret. |
+| **Apple** (iOS) | Native `expo-apple-authentication` → `signInWithIdToken` with a SHA-256 nonce; the name Apple shares on first sign-in is saved to the profile | Apple Developer: enable *Sign in with Apple* on your App ID. Supabase → Providers → Apple: add your bundle ID (and `host.exp.Exponent` for Expo Go) under *Client IDs*. Needs a development build. |
+
+Also add **Redirect URLs** in Supabase → Authentication → URL Configuration: `habitflow://**` (and `exp://**` while testing in Expo Go). App Store rule: because Google sign-in is offered, Sign in with Apple must be offered on iOS too — it is.
+
+## Server push: streak protection
+
+A server-side check sends a push when a streak is about to break:
+
+- **Rule** (`src/domain/nudges.ts`, unit-tested): a habit is at risk when it's due today, not done/skipped/missed, and has a running streak (≥ 2 days, or ≥ 1 week/month for quota habits — those only on the last day of the period).
+- **Schedule:** `pg_cron` runs hourly and calls the `streak-nudges` Edge Function (secret header from Vault). Each user is checked in the hour after their *Streak check time* (default 20:00) in **their own time zone**, at most **once per local day** (`push_nudges` log).
+- **Same logic on server and device:** `npm run build:edge` bundles `src/domain` into `supabase/functions/_shared/domain.js` (+ types); `npm test` fails if the bundle is stale.
+- **Delivery:** Expo push service → **APNs** (iOS) / **Firebase Cloud Messaging** (Android). Tokens Expo reports as unregistered are deleted.
+- **Who gets it:** signed-in users with cloud sync active (the server must see today's progress), notifications allowed, and *Settings → Reminders → Streak protection* on. Tokens are registered via the `register_push_token` RPC and removed on sign-out.
+
+Setup (once):
+
+1. `npx eas-cli@latest init` → put the project ID in `.env.local` as `EAS_PROJECT_ID` (or in `app.json → extra.eas.projectId`).
+2. **Android / Firebase:** create a Firebase project, add an Android app with your package name, download `google-services.json` to the repo root (picked up by `app.config.js`), then upload an FCM V1 service-account key in EAS (`npx eas-cli@latest credentials` → Android → Push Notifications).
+3. **iOS:** paid Apple Developer account; let `eas build` create the APNs key (or upload one in `eas credentials`).
+4. Server (already done for this project): `supabase db push`, `supabase secrets set CRON_SECRET=…`, Vault secrets `habitflow_project_url` / `habitflow_cron_secret` with the same value, `supabase functions deploy streak-nudges --use-api`.
+5. Test on **physical devices** (or an iOS 16+ simulator on Apple silicon) with a development build. *Settings → Reminder troubleshooting* shows this device's push registration status.
+
 ## Configuring the AI planner
 
 The app works without AI (curated offline templates). To enable AI:
@@ -208,7 +239,7 @@ Set the `EXPO_PUBLIC_*` variables as EAS environment variables. Before the first
 
 ## Testing
 
-Automated (currently **79 tests**, all passing):
+Automated (currently **92 tests**, all passing; `npm test` also verifies the Edge Function domain bundle is up to date):
 
 | Suite | Covers |
 |---|---|
@@ -218,6 +249,9 @@ Automated (currently **79 tests**, all passing):
 | `domain/__tests__/reminders.test.ts` | schedule-following, weekday filters, completed-day suppression, archived/deleted, quota suppression, budget, idempotent diff, rescheduling |
 | `db/__tests__/repository.test.ts` | real SQLite (`node:sqlite`): CRUD, duplicate/rename/archive/restore/delete, versioning, unique completions, future-date rules, lists, outbox atomicity, backup round-trip/idempotency, CSV |
 | `domain/__tests__/validation.test.ts` | form, schedule, reminder and AI-response validation; every bundled template is valid; template matching and premium gating |
+| `domain/__tests__/nudges.test.ts` | streak-at-risk rules (done/skipped/short streaks, unscheduled, archived, quota last-day), ordering & message, time-zone nudge window across day boundaries |
+| `constants/__tests__/habit-icons.test.ts` | icon catalog/legacy emoji mapping, schema v2 migration, AI icon keys in sync |
+| `__tests__/account-screen.test.tsx` | account screen renders sign-in form with social and email options |
 | `sync/__tests__/engine.test.ts` | offline writes → push, multi-device pull, idempotent retries, LWW conflicts, stale-device protection, tombstones, network failure + retry, account switch, default-list dedupe |
 
 Not executed in this environment (written, need tooling): `.maestro` E2E flows, `supabase/tests/rls.test.sql` (pgTAP), Edge Functions on Deno (they were type-checked against the pinned npm SDKs).
@@ -237,7 +271,8 @@ Manual device checklist: small phone (iPhone SE / 5" Android) and tablet layouts
 - Reminders: planner, idempotent sync, permission flow, troubleshooting screen, notification "Mark done"
 - Theming: system/light/dark, accents, compact/comfortable density, Dynamic Type, accessibility labels/actions
 - Export: JSON backup, CSV, daily automatic local backups (7 kept), merge-restore
-- Backend: migrations, RLS, LWW triggers, sync engine, email auth (sign up/in/out, reset, session restore), guest migration, account deletion, local data erase
+- Backend: migrations, RLS, LWW triggers, sync engine, auth (email sign up/in/out, in-app password reset, email confirmation deep link, Google OAuth/PKCE, native Sign in with Apple, session restore), guest migration, account deletion, local data erase
+- Server push: streak-at-risk nudges (pg_cron → Edge Function → Expo push/APNs/FCM), device token registration, per-day idempotency, user-local timing, settings toggle + time
 - AI planner (Edge Function) with template fallback; RevenueCat paywall/restore/webhook; remote plan limits
 
 **Deferred (not implemented — do not advertise)**
@@ -245,7 +280,8 @@ Manual device checklist: small phone (iPhone SE / 5" Android) and tablet layouts
 - **Home-screen widgets and quick actions.** `expo-widgets` (iOS, dev build only, `@expo/ui/swift-ui`) is the intended path; Android widgets would need a config plugin/native module. Not built because they can't be verified here.
 - Background refresh of the reminder window (`expo-background-task`) for users who don't open the app for 2+ weeks.
 - Sync realtime subscriptions (sync runs on change/foreground/backoff instead).
-- Social sign-in providers; email change; magic links.
+- Email change; magic links; phone (SMS) sign-in.
+- Other server push campaigns (announcements, silent cross-device sync).
 - Ads (intentionally none in the MVP).
 - Localisation of UI strings (dates/numbers are already locale-formatted via `Intl`).
 - Web build.
@@ -256,6 +292,8 @@ Manual device checklist: small phone (iPhone SE / 5" Android) and tablet layouts
 - [ ] Create `eas.json` profiles; configure EAS environment variables per profile
 - [ ] Supabase: apply migrations, enable email confirmations, configure SMTP, set redirect URLs, deploy functions, set secrets, run `supabase test db`
 - [ ] Enable leaked-password protection and rate limits in Supabase Auth
+- [ ] Google OAuth client + Apple Sign in capability configured; Supabase redirect URLs `habitflow://**`
+- [ ] `eas init` project ID; Firebase `google-services.json` + FCM V1 key in EAS; APNs key; verify streak push on physical iOS and Android
 - [ ] RevenueCat: products, offering, entitlement `premium`, webhook, sandbox purchase + restore on both stores
 - [ ] Publish privacy policy & terms; set `EXPO_PUBLIC_PRIVACY_POLICY_URL` / `EXPO_PUBLIC_TERMS_URL`; complete App Store privacy labels and Play Data safety form
 - [ ] Verify reminders on physical iOS and Android devices (locked screen, Focus/Doze, reboot, time-zone change)

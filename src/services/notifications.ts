@@ -221,7 +221,11 @@ export async function handleNotificationResponse(
   db: Db,
   response: Notifications.NotificationResponse,
 ): Promise<void> {
-  const data = response.notification.request.content.data as { habitId?: unknown; date?: unknown } | undefined;
+  const data = response.notification.request.content.data as { habitId?: unknown; date?: unknown; type?: unknown } | undefined;
+  if (data?.type === 'streak') {
+    router.navigate('/today');
+    return;
+  }
   const habitId = typeof data?.habitId === 'string' ? data.habitId : null;
   const date = typeof data?.date === 'string' && isValidLocalDate(data.date) ? data.date : null;
   if (!habitId || !date) return;

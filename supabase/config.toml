@@ -425,3 +425,7 @@ verify_jwt = true
 # so the Supabase JWT check must be off for this endpoint.
 [functions.revenuecat-webhook]
 verify_jwt = false
+
+# Called hourly by pg_cron with the x-cron-secret header (no user JWT).
+[functions.streak-nudges]
+verify_jwt = false

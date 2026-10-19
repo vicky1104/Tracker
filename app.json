@@ -13,7 +13,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.example.habitflow",
@@ -48,11 +49,11 @@
         "expo-notifications",
         {
           "color": "#2A8C70",
-          "defaultChannel": "habit-reminders",
-          "enableRemoteNotifications": false
+          "defaultChannel": "habit-reminders"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

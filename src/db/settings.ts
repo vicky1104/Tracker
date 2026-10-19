@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   focusAreas: [],
   defaultReminderTimes: { morning: '08:00', afternoon: '13:00', evening: '20:00' },
   remindersEnabled: true,
+  streakNudges: true,
+  streakNudgeTime: '20:00',
   timeZone: deviceTimeZone(),
 };
 

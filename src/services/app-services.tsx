@@ -19,6 +19,7 @@ import {
   syncReminders,
 } from './notifications';
 import { identifyPurchaser, initPurchases } from './purchases';
+import { syncPushRegistration } from './push';
 import { syncNow } from './sync';
 
 configureNotificationHandler();
@@ -29,6 +30,8 @@ export function AppServices() {
   useEffect(() => {
     const scheduleReminders = debounce(() => void syncReminders(db).catch((e) => console.warn('[reminders]', e)), 800);
     const scheduleSync = debounce(() => void syncNow(db), 2500);
+    // After sync so the server already has the latest settings when the token appears.
+    const schedulePush = debounce(() => void syncNow(db).then(() => syncPushRegistration(db)), 4000);
 
     void setupNotificationChannels().then(scheduleReminders);
     void runAutoBackup(db).catch((e) => console.warn('[backup] auto-backup failed', e));
@@ -38,6 +41,7 @@ export function AppServices() {
     void initAuth((user) => {
       void identifyPurchaser(user?.id ?? null);
       scheduleSync();
+      schedulePush();
     }).then((unsub) => {
       unsubscribeAuth = unsub;
     });
@@ -45,12 +49,14 @@ export function AppServices() {
     const offData = onLocalDataChanged(() => {
       scheduleReminders();
       scheduleSync();
+      schedulePush();
     });
 
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         scheduleReminders(); // re-plans the rolling window and picks up permission changes
         scheduleSync();
+        schedulePush();
       }
     });
 

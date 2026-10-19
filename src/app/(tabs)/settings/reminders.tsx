@@ -11,6 +11,8 @@ import { useDb } from '@/data/database';
 import { useHabitData, useSettings } from '@/data/hooks';
 import { errorMessage } from '@/lib/errors';
 import { listUpcoming, openSystemSettings, sendTestNotification, syncReminders, type SyncResult, type UpcomingReminder } from '@/services/notifications';
+import { isSupabaseConfigured } from '@/config/env';
+import { describePushStatus, syncPushRegistration, type PushStatus } from '@/services/push';
 import { showToast } from '@/state/app-store';
 import { spacing } from '@/theme/tokens';
 
@@ -22,9 +24,10 @@ export default function ReminderTroubleshootingScreen() {
   // Checking also re-schedules, so opening this screen fixes most stale states.
   const check = useQuery({
     queryKey: ['reminder-check'],
-    queryFn: async (): Promise<{ sync: SyncResult; upcoming: UpcomingReminder[] }> => ({
+    queryFn: async (): Promise<{ sync: SyncResult; upcoming: UpcomingReminder[]; push: PushStatus }> => ({
       sync: await syncReminders(db),
       upcoming: await listUpcoming(),
+      push: await syncPushRegistration(db),
     }),
     staleTime: 0,
     gcTime: 0,
@@ -74,6 +77,11 @@ export default function ReminderTroubleshootingScreen() {
             }
           />
         </View>
+        {check.data && isSupabaseConfigured && (
+          <Text variant="caption" tone="secondary">
+            Streak protection: {describePushStatus(check.data.push)}
+          </Text>
+        )}
         {lastSync && (
           <Text variant="caption" tone="tertiary">
             Last check: {lastSync.planned} planned · {lastSync.scheduled} added · {lastSync.cancelled} removed

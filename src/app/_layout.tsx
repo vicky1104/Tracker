@@ -63,6 +63,8 @@ function RootNavigator() {
         <Stack.Screen name="planner" options={{ presentation: 'modal', title: 'Habit planner' }} />
         <Stack.Screen name="premium" options={{ presentation: 'modal', title: 'HabitFlow Premium' }} />
         <Stack.Screen name="sign-in" options={{ presentation: 'modal', title: 'Account' }} />
+        <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
+        <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
       </Stack>
       <ToastHost />
       <AppServices />
