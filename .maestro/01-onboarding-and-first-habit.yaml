@@ -1,0 +1,21 @@
+# End-to-end: first launch → skip-free onboarding → create a habit → complete it.
+# Run: maestro test .maestro   (requires a dev build or Expo Go with the app loaded)
+appId: com.example.habitflow
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Small habits,.*"
+- tapOn: "Get started"
+- tapOn: "Fitness"
+- tapOn: "Continue"
+- tapOn: "Continue"
+- assertVisible: "Start with a few habits?"
+- tapOn: "Finish"
+- assertVisible: "Start with one small habit"
+- tapOn: "New habit"
+- tapOn: "Name"
+- inputText: "Drink water"
+- tapOn: "Create habit"
+- assertVisible: "Drink water"
+- tapOn: "Drink water: Not done yet"
+- assertVisible: "100%"

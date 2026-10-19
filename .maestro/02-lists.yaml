@@ -1,0 +1,12 @@
+# End-to-end: create a second list and switch between lists on Today.
+appId: com.example.habitflow
+---
+- launchApp
+- tapOn: "My Lists"
+- tapOn: "New list"
+- tapOn: "Fitness"
+- tapOn: "Create list"
+- assertVisible: "Fitness"
+- tapOn: "Today"
+- tapOn: "Fitness"
+- tapOn: "All lists"
