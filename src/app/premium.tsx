@@ -28,9 +28,8 @@ const FREE = [
 const PREMIUM = [
   'Long-term trends, weekday insights, all-time stats',
   'Cloud backup & sync across devices',
-  'More AI planner suggestions per day',
-  'Multi-week planning programs',
   'Extra accent themes',
+  'Alternate app icons',
 ];
 
 export default function PremiumScreen() {

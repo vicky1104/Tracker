@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { AppIconPicker } from '@/components/settings/app-icon-picker';
 import { Button } from '@/components/ui/button';
 import { Row, SegmentedControl, SwitchRow } from '@/components/ui/controls';
 import { Icon } from '@/components/ui/icon';
@@ -12,7 +13,7 @@ import { Text } from '@/components/ui/text';
 import { isSupabaseConfigured } from '@/config/env';
 import { usePlan } from '@/config/plans';
 import { useSettings, useUpdateSettings } from '@/data/hooks';
-import type { Density, FirstDayOfWeek, ThemePreference } from '@/domain/types';
+import type { FirstDayOfWeek, ThemePreference } from '@/domain/types';
 import { useAuth } from '@/services/auth';
 import { useAppStore } from '@/state/app-store';
 import { useTheme } from '@/theme/theme';
@@ -101,18 +102,7 @@ export default function SettingsScreen() {
             );
           })}
         </View>
-        <Text variant="captionStrong" tone="secondary">
-          Habit rows
-        </Text>
-        <SegmentedControl<Density>
-          accessibilityLabel="Display density"
-          value={settings.density}
-          onChange={(density) => void update({ density })}
-          options={[
-            { value: 'comfortable', label: 'Comfortable' },
-            { value: 'compact', label: 'Compact' },
-          ]}
-        />
+        <AppIconPicker locked={!limits.extraThemes} onLockedPress={() => router.push('/premium')} />
       </Card>
 
       <SectionHeader title="Calendar" />

@@ -1,5 +1,5 @@
 # End-to-end: create a second list and switch between lists on Today.
-appId: com.example.habitflow
+appId: com.vicky.habitflow.app
 ---
 - launchApp
 - tapOn: "My Lists"

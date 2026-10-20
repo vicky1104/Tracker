@@ -9,15 +9,16 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.example.habitflow",
+      "bundleIdentifier": "com.vicky.habitflow.app",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "appleTeamId": "MFMNLRV564"
     },
     "android": {
-      "package": "com.example.habitflow",
+      "package": "com.vicky.habitflow.app",
       "adaptiveIcon": {
         "backgroundColor": "#E8F3EE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -53,11 +54,58 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Coral",
+            "ios": "./assets/app-icons/coral.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/coral-foreground.png",
+              "backgroundColor": "#FFE9E4"
+            }
+          },
+          {
+            "name": "Plum",
+            "ios": "./assets/app-icons/plum.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/plum-foreground.png",
+              "backgroundColor": "#FBE6F1"
+            }
+          },
+          {
+            "name": "Amber",
+            "ios": "./assets/app-icons/amber.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/amber-foreground.png",
+              "backgroundColor": "#FFF0DC"
+            }
+          },
+          {
+            "name": "Graphite",
+            "ios": "./assets/app-icons/graphite.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/graphite-foreground.png",
+              "backgroundColor": "#2B2E33"
+            }
+          }
+        ]
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "9274150f-9ff2-416f-9135-a87af6e38e36"
+      }
     }
   }
 }

@@ -133,8 +133,21 @@ function HabitForm({ editing, initialListId }: { editing: HabitContext | undefin
       <Stack.Screen
         options={{
           title: editing ? 'Edit habit' : 'New habit',
-          headerLeft: () => <Button title="Cancel" variant="ghost" size="sm" onPress={() => router.back()} />,
-          headerRight: () => <Button title="Save" size="sm" onPress={onSubmit} loading={saving} />,
+          // iOS 26 wraps header views in a glass pill; hide it so our own button styling shows.
+          unstable_headerLeftItems: () => [
+            {
+              type: 'custom',
+              hidesSharedBackground: true,
+              element: <Button title="Cancel" variant="ghost" size="sm" onPress={() => router.back()} />,
+            },
+          ],
+          unstable_headerRightItems: () => [
+            {
+              type: 'custom',
+              hidesSharedBackground: true,
+              element: <Button title="Save" size="sm" onPress={onSubmit} loading={saving} />,
+            },
+          ],
         }}
       />
       <Screen keyboardShouldPersistTaps="handled">

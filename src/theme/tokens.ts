@@ -123,9 +123,8 @@ export function buildPalette(scheme: 'light' | 'dark', accentId: string): Palett
   };
 }
 
-/** Row metrics for the two display densities. */
+/** Habit row metrics (comfortable is the only density). */
 export const density = {
-  compact: { rowPaddingV: 8, rowGap: 6, icon: 32, check: 34 },
   comfortable: { rowPaddingV: 12, rowGap: 10, icon: 40, check: 40 },
 } as const;
 

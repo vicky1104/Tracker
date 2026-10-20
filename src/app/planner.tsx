@@ -9,17 +9,15 @@ import { Icon } from '@/components/ui/icon';
 import { Card, Notice, Screen, SectionHeader } from '@/components/ui/layout';
 import { TimeField } from '@/components/ui/pickers';
 import { Text } from '@/components/ui/text';
-import { isAiConfigured } from '@/config/env';
-import { usePlan } from '@/config/plans';
+import { isSupabaseConfigured } from '@/config/env';
 import { resolveIconKey } from '@/constants/habit-icons';
 import { HABIT_COLORS } from '@/constants/palette';
 import { useActions, useHabitData } from '@/data/hooks';
 import { weekdayShortName } from '@/domain/dates';
 import { describeRule } from '@/domain/schedule';
-import { PLANNER_TEMPLATES } from '@/domain/templates';
 import type { HabitSuggestion } from '@/domain/validation';
 import { todayLocal } from '@/lib/clock';
-import { canUseAi, generatePlan, type PlanResult } from '@/services/ai-planner';
+import { generatePlan, PlannerError } from '@/services/ai-planner';
 import { useAuth } from '@/services/auth';
 import { useTheme } from '@/theme/theme';
 import { radius, spacing } from '@/theme/tokens';
@@ -32,18 +30,20 @@ interface Draft {
   reminderTime: string;
 }
 
+/** Example goals. Tapping one fills the goal and asks the AI for habits. */
+const GOAL_IDEAS = ['Sleep better', 'Get fit', 'Read more', 'Eat healthier', 'Reduce screen time', 'Learn a language', 'Be more mindful', 'Save money'];
+
 const DIFFICULTY = { easy: 'Easy', medium: 'Medium', hard: 'Challenging' } as const;
 
 export default function PlannerScreen() {
   const { colors } = useTheme();
   const data = useHabitData();
   const actions = useActions();
-  const { limits } = usePlan();
-  const user = useAuth((s) => s.user);
   const [goal, setGoal] = useState('');
-  const [useAi, setUseAi] = useState(canUseAi());
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PlanResult | null>(null);
+  const user = useAuth((s) => s.user);
+  const [generated, setGenerated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const activeLists = data.lists.filter((l) => !l.archivedOn);
   const [listId, setListId] = useState<string | null>(null);
@@ -51,18 +51,25 @@ export default function PlannerScreen() {
   const [adding, setAdding] = useState(false);
 
   const generate = async (text = goal) => {
-    if (text.trim().length < 3) return;
+    if (!user || text.trim().length < 3 || loading) return;
     setLoading(true);
-    const r = await generatePlan(text, {
-      includeAdvancedTemplates: limits.advancedTemplates,
-      existingHabits: data.contexts.filter((c) => !c.habit.archivedOn).map((c) => c.habit.name),
-      preferAi: useAi,
-    });
-    setResult(r);
-    setDrafts(
-      r.suggestions.map((s) => ({ suggestion: s, include: true, name: s.name, remind: false, reminderTime: s.reminderTime ?? '09:00' })),
-    );
-    setLoading(false);
+    setError(null);
+    try {
+      const suggestions = await generatePlan(
+        text,
+        data.contexts.filter((c) => !c.habit.archivedOn).map((c) => c.habit.name),
+      );
+      setDrafts(
+        suggestions.map((s) => ({ suggestion: s, include: true, name: s.name, remind: false, reminderTime: s.reminderTime ?? '09:00' })),
+      );
+      setGenerated(true);
+    } catch (e) {
+      setDrafts([]);
+      setGenerated(false);
+      setError(e instanceof PlannerError ? e.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selected = drafts.filter((d) => d.include && d.name.trim());
@@ -94,12 +101,6 @@ export default function PlannerScreen() {
     router.dismissTo('/today');
   };
 
-  const aiNote = !isAiConfigured
-    ? 'Suggestions come from curated templates and work offline.'
-    : !user
-      ? 'Sign in to use AI suggestions. Curated templates work without an account.'
-      : null;
-
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerLeft: () => <Button title="Close" variant="ghost" size="sm" onPress={() => router.back()} /> }} />
@@ -115,40 +116,38 @@ export default function PlannerScreen() {
           onSubmitEditing={() => void generate()}
         />
         <ChipRow>
-          {PLANNER_TEMPLATES.filter((t) => !t.advanced || limits.advancedTemplates).map((t) => (
+          {GOAL_IDEAS.map((idea) => (
             <Chip
-              key={t.id}
-              label={t.title}
-              selected={false}
+              key={idea}
+              label={idea}
+              selected={goal === idea}
               onPress={() => {
-                setGoal(t.title);
-                void generate(t.title);
+                setGoal(idea);
+                void generate(idea);
               }}
             />
           ))}
         </ChipRow>
-        {!limits.advancedTemplates && (
-          <Pressable onPress={() => router.push('/premium')} accessibilityRole="button" style={styles.inline}>
-            <Icon name="lock" size={14} color={colors.textTertiary} />
-            <Text variant="caption" tone="tertiary">
-              Multi-week programs like Couch to 5K are included with Premium
-            </Text>
-          </Pressable>
+        {error && <Notice icon="info" tone="warning" message={error} />}
+        {!user && (
+          <Notice
+            icon="cloud"
+            title="Account required"
+            message={
+              isSupabaseConfigured
+                ? 'The AI habit planner needs a free HabitFlow account. Everything else works without one.'
+                : 'The AI habit planner needs an account, but sign-in isn’t configured in this build.'
+            }
+            action={
+              isSupabaseConfigured ? <Button title="Sign in" size="sm" onPress={() => router.push('/sign-in')} /> : undefined
+            }
+          />
         )}
-        {canUseAi() && (
-          <Card padded={false}>
-            <SwitchRow icon="sparkles" title="Use AI suggestions" subtitle={`Up to ${limits.aiGenerationsPerDay} per day on your plan`} value={useAi} onValueChange={setUseAi} />
-          </Card>
-        )}
-        {aiNote && <Notice icon="info" message={aiNote} />}
-        <Button title="Suggest habits" icon="sparkles" onPress={() => void generate()} loading={loading} disabled={goal.trim().length < 3} />
+        <Button title="Suggest habits" icon="sparkles" onPress={() => void generate()} loading={loading} disabled={!user || goal.trim().length < 3} />
 
-        {result && (
+        {generated && (
           <>
-            {result.notice && <Notice icon="info" tone="warning" message={result.notice} />}
-            <SectionHeader
-              title={`${result.source === 'ai' ? 'AI suggestions' : 'Suggestions'}${result.remaining != null ? ` · ${result.remaining} AI left today` : ''}`}
-            />
+            <SectionHeader title="AI suggestions" />
             {drafts.map((d, idx) => {
               const s = d.suggestion;
               const set = (patch: Partial<Draft>) => setDrafts(drafts.map((x, i) => (i === idx ? { ...x, ...patch } : x)));

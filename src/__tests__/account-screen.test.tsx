@@ -32,7 +32,7 @@ jest.mock('@/services/auth', () => ({
 jest.mock('@/services/push', () => ({ unregisterPushToken: jest.fn() }));
 
 const wrap = (ui: ReactNode) => (
-  <ThemeProvider preference="light" accent="sage" density="comfortable">
+  <ThemeProvider preference="light" accent="sage">
     {ui}
   </ThemeProvider>
 );

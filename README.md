@@ -199,8 +199,11 @@ Setup (once):
 The app works without AI (curated offline templates). To enable AI:
 
 ```bash
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-# optional: supabase secrets set ANTHROPIC_MODEL=claude-opus-5-5
+supabase secrets set AI_API_KEY=...   # any OpenAI-compatible provider (Gemini, Groq, OpenRouter…)
+# Default model is gemini-3.8-flash (free tier). Override with:
+# supabase secrets set AI_MODEL=<model-id>
+# Other provider (also set AI_MODEL):
+# supabase secrets set AI_BASE_URL=https://api.groq.com/openai/v1
 ```
 
 and set `EXPO_PUBLIC_AI_PLANNER_ENABLED=true`. The `ai-plan` function:
@@ -211,7 +214,7 @@ and set `EXPO_PUBLIC_AI_PLANNER_ENABLED=true`. The `ai-plan` function:
 - validates the output with Zod and maps it to the app's schedule format,
 - records token usage in `ai_generation_requests`; failed calls don't count against the allowance.
 
-Suggestions are always shown for review and editing; nothing (habits or reminders) is created without confirmation. Set `ANTHROPIC_MODEL` to a smaller model if you want to trade quality for cost.
+Suggestions are always shown for review and editing; nothing (habits or reminders) is created without confirmation. Set `AI_MODEL` to a smaller model if you want to trade quality for cost.
 
 ## Configuring subscriptions (RevenueCat)
 
@@ -235,7 +238,7 @@ npx eas-cli@latest build --profile production --platform all
 npx eas-cli@latest submit --platform ios    # / android
 ```
 
-Set the `EXPO_PUBLIC_*` variables as EAS environment variables. Before the first store build, replace `com.example.habitflow` in `app.json` with your bundle id / package name. `ios/` and `android/` are generated (Continuous Native Generation); configure native behaviour through `app.json` plugins only.
+Set the `EXPO_PUBLIC_*` variables as EAS environment variables. The bundle id / package name is `com.vicky.habitflow.app` (set in `app.json`). `ios/` and `android/` are generated (Continuous Native Generation); configure native behaviour through `app.json` plugins only.
 
 ## Testing
 

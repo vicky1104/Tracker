@@ -10,12 +10,12 @@ export const env = {
   revenueCatIosKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '',
   revenueCatAndroidKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '',
   revenueCatEntitlement: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT || 'premium',
-  aiPlannerEnabled: process.env.EXPO_PUBLIC_AI_PLANNER_ENABLED === 'true',
+  /** Local Ollama server for the habit planner (empty → platform default, see services/ai-planner.ts). */
+  ollamaUrl: process.env.EXPO_PUBLIC_OLLAMA_URL ?? '',
+  ollamaModel: process.env.EXPO_PUBLIC_OLLAMA_MODEL || 'qwen3:4b',
   privacyPolicyUrl: process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '',
   termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? '',
   supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '',
 };
 
 export const isSupabaseConfigured = Boolean(env.supabaseUrl && env.supabaseAnonKey);
-/** The AI planner needs the backend (it is proxied by an Edge Function). */
-export const isAiConfigured = isSupabaseConfigured && env.aiPlannerEnabled;

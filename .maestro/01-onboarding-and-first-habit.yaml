@@ -1,6 +1,6 @@
 # End-to-end: first launch → skip-free onboarding → create a habit → complete it.
 # Run: maestro test .maestro   (requires a dev build or Expo Go with the app loaded)
-appId: com.example.habitflow
+appId: com.vicky.habitflow.app
 ---
 - launchApp:
     clearState: true

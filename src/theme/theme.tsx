@@ -1,15 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 
-import type { Density, ThemePreference } from '@/domain/types';
+import type { ThemePreference } from '@/domain/types';
 
 import { buildPalette, density as densityTokens, type Palette } from './tokens';
 
 export interface Theme {
   scheme: 'light' | 'dark';
   colors: Palette;
-  density: (typeof densityTokens)[Density];
-  densityName: Density;
+  density: (typeof densityTokens)['comfortable'];
 }
 
 const ThemeContext = createContext<Theme | null>(null);
@@ -17,12 +16,10 @@ const ThemeContext = createContext<Theme | null>(null);
 export function ThemeProvider({
   preference,
   accent,
-  density,
   children,
 }: {
   preference: ThemePreference;
   accent: string;
-  density: Density;
   children: ReactNode;
 }) {
   // Keep native UI (pickers, alerts, keyboard) in sync with the manual override.
@@ -38,10 +35,9 @@ export function ThemeProvider({
     () => ({
       scheme,
       colors: buildPalette(scheme, accent),
-      density: densityTokens[density],
-      densityName: density,
+      density: densityTokens.comfortable,
     }),
-    [scheme, accent, density],
+    [scheme, accent],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

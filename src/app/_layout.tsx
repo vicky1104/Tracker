@@ -24,7 +24,7 @@ function HideSplash() {
 function AppTheme({ children }: { children: React.ReactNode }) {
   const settings = useAppStore((s) => s.settings);
   return (
-    <ThemeProvider preference={settings.theme} accent={settings.accent} density={settings.density}>
+    <ThemeProvider preference={settings.theme} accent={settings.accent}>
       {children}
     </ThemeProvider>
   );
