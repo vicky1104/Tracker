@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -49,10 +48,8 @@ export function CheckButton({
   const partial = state === 'partial';
 
   const press = () => {
-    if (!done) {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-      if (!reduceMotion) scale.set(withSequence(withTiming(0.86, { duration: 80 }), withSpring(1, { damping: 9 })));
-    }
+    // Haptics come from the shared toggle handler so every completion path feels the same.
+    if (!done && !reduceMotion) scale.set(withSequence(withTiming(0.86, { duration: 80 }), withSpring(1, { damping: 9 })));
     onPress();
   };
 

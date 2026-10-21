@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Chip, ChipRow } from '@/components/ui/controls';
 import { Icon } from '@/components/ui/icon';
 import { HabitGlyph, HabitIcon } from '@/components/ui/habit-icon';
-import { Card, Divider, EmptyState, ErrorState, LoadingState, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, ErrorState, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { StatsSkeleton } from '@/components/ui/screen-skeletons';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { TabHeader } from '@/components/ui/tab-header';
 import { Text } from '@/components/ui/text';
@@ -87,7 +88,7 @@ export default function StatsScreen() {
     [data.lists, data.contexts, data.records, from, today, fdw],
   );
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <StatsSkeleton />;
   if (data.error) return <ErrorState message={errorMessage(data.error)} onRetry={data.refetch} />;
   if (data.contexts.length === 0) {
     return (

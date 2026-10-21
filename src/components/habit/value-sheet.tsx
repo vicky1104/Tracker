@@ -8,6 +8,7 @@ import { HabitIcon } from '@/components/ui/habit-icon';
 import { Text } from '@/components/ui/text';
 import { formatLocalDate } from '@/domain/dates';
 import type { Completion, Habit, LocalDate } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { MAX_CONTENT_WIDTH, radius, spacing, typography } from '@/theme/tokens';
 
@@ -59,7 +60,10 @@ export function ValueSheet({
 
           <View style={styles.inputRow}>
             <Pressable
-              onPress={() => setText(String(Math.max(0, current - step)))}
+              onPress={() => {
+                haptics.selection();
+                setText(String(Math.max(0, current - step)));
+              }}
               style={[styles.step, { backgroundColor: colors.surfaceMuted }]}
               accessibilityRole="button"
               accessibilityLabel={`Decrease by ${step}`}>
@@ -77,7 +81,10 @@ export function ValueSheet({
               style={[styles.input, typography.display, { color: colors.text, borderColor: colors.border }]}
             />
             <Pressable
-              onPress={() => setText(String(current + step))}
+              onPress={() => {
+                haptics.selection();
+                setText(String(current + step));
+              }}
               style={[styles.step, { backgroundColor: colors.surfaceMuted }]}
               accessibilityRole="button"
               accessibilityLabel={`Increase by ${step}`}>
@@ -88,7 +95,11 @@ export function ValueSheet({
             {habit.unit}
           </Text>
 
-          <Button title="Set to goal" variant="secondary" size="sm" onPress={() => setText(String(target))} />
+          <Button title="Set to goal" variant="secondary" size="sm" onPress={() => {
+              haptics.selection();
+              setText(String(target));
+            }}
+          />
           <TextField label="Note (optional)" value={note} onChangeText={setNote} maxLength={280} placeholder="How did it go?" />
 
           <View style={styles.actions}>

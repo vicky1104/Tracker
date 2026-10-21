@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { ErrorState, LoadingState } from '@/components/ui/layout';
+import { ErrorState } from '@/components/ui/layout';
+import { LoadingState } from '@/components/ui/screen-skeletons';
 import { errorMessage } from '@/lib/errors';
 import { completeAuthRedirect, isOAuthInFlight } from '@/services/auth';
 import { showToast } from '@/state/app-store';

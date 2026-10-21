@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
 import { AuthForm, type AuthMode } from '@/components/account/auth-form';
-import { Button } from '@/components/ui/button';
+import { HeaderDismissButton } from '@/components/ui/button';
 import { HabitIcon } from '@/components/ui/habit-icon';
 import { EmptyState, Notice, Screen } from '@/components/ui/layout';
 import { Text } from '@/components/ui/text';
@@ -20,7 +20,7 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ headerLeft: () => <Button title="Close" variant="ghost" size="sm" onPress={close} /> }} />
+      <Stack.Screen options={{ headerLeft: () => <HeaderDismissButton onPress={close} /> }} />
       <Screen keyboardShouldPersistTaps="handled">
         {!isSupabaseConfigured ? (
           <Notice

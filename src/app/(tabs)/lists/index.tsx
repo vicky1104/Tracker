@@ -8,7 +8,8 @@ import { Button, IconButton } from '@/components/ui/button';
 import { Row } from '@/components/ui/controls';
 import { HabitGlyph, HabitIcon } from '@/components/ui/habit-icon';
 import { Icon } from '@/components/ui/icon';
-import { Card, ErrorState, LoadingState, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, ErrorState, Screen, SectionHeader } from '@/components/ui/layout';
+import { ListsSkeleton } from '@/components/ui/screen-skeletons';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { ReorderableList } from '@/components/ui/reorderable-list';
 import { TabHeader } from '@/components/ui/tab-header';
@@ -68,7 +69,7 @@ export default function ListsScreen() {
   const [dragging, setDragging] = useState(false);
   const [menuFor, setMenuFor] = useState<HabitList | null>(null);
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <ListsSkeleton />;
   if (data.error) return <ErrorState message={errorMessage(data.error)} onRetry={data.refetch} />;
 
   const active = data.lists.filter((l) => !l.archivedOn);

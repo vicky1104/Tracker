@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from '@/config/env';
 import { usePlan } from '@/config/plans';
 import { useSettings, useUpdateSettings } from '@/data/hooks';
 import type { FirstDayOfWeek, ThemePreference } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/services/auth';
 import { useAppStore } from '@/state/app-store';
 import { useTheme } from '@/theme/theme';
@@ -92,7 +93,11 @@ export default function SettingsScreen() {
             return (
               <Pressable
                 key={a.id}
-                onPress={() => (locked ? router.push('/premium') : void update({ accent: a.id }))}
+                onPress={() => {
+                  if (locked) return router.push('/premium');
+                  if (!selected) haptics.selection();
+                  void update({ accent: a.id });
+                }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 accessibilityLabel={`${a.name}${locked ? ', premium' : ''}`}

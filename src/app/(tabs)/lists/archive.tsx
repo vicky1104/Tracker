@@ -3,27 +3,31 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { HabitGlyph } from '@/components/ui/habit-icon';
-import { Card, Divider, EmptyState, LoadingState, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, Screen, SectionHeader } from '@/components/ui/layout';
+import { ArchiveSkeleton } from '@/components/ui/screen-skeletons';
 import { Text } from '@/components/ui/text';
 import { useActions, useHabitData } from '@/data/hooks';
 import { formatLocalDate } from '@/domain/dates';
+import { haptics } from '@/lib/haptics';
 import { spacing } from '@/theme/tokens';
 
 export default function ArchiveScreen() {
   const data = useHabitData();
   const actions = useActions();
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <ArchiveSkeleton />;
 
   const lists = data.lists.filter((l) => l.archivedOn);
   const habits = data.contexts.filter((c) => c.habit.archivedOn);
   const listName = new Map(data.lists.map((l) => [l.id, l]));
   const since = (d: string) => `Archived ${formatLocalDate(d, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-  const confirmDeleteHabit = (id: string, name: string) =>
+  const confirmDeleteHabit = (id: string, name: string) => {
+    haptics.warning();
     Alert.alert(`Delete “${name}” permanently?`, 'Its history will be removed from statistics and cannot be recovered.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => void actions.deleteHabit(id) },
     ]);
+  };
 
   return (
     <Screen>

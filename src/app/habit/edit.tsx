@@ -1,14 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ReminderEditor } from '@/components/habit/reminder-editor';
 import { ScheduleEditor } from '@/components/habit/schedule-editor';
-import { Button } from '@/components/ui/button';
+import { Button, HeaderDismissButton } from '@/components/ui/button';
 import { Chip, SegmentedControl, SwitchRow, TextField } from '@/components/ui/controls';
-import { Card, LoadingState, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { FormSkeleton } from '@/components/ui/screen-skeletons';
 import { ColorPicker, DateField, IconPicker } from '@/components/ui/pickers';
 import { HabitIcon } from '@/components/ui/habit-icon';
 import { Text } from '@/components/ui/text';
@@ -19,13 +20,15 @@ import { rulesEqual, versionOn } from '@/domain/schedule';
 import type { HabitCategory, HabitContext, TimeOfDay } from '@/domain/types';
 import { habitFormSchema, type HabitFormValues } from '@/domain/validation';
 import { todayLocal } from '@/lib/clock';
+import { haptics } from '@/lib/haptics';
+import { ensureReminderPermission, reminderTimeFor } from '@/services/notifications';
 import { useTheme } from '@/theme/theme';
 import { spacing } from '@/theme/tokens';
 
 export default function HabitEditScreen() {
   const params = useLocalSearchParams<{ id?: string; listId?: string }>();
   const data = useHabitData();
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <FormSkeleton />;
   const editing = params.id ? data.contexts.find((c) => c.habit.id === params.id) : undefined;
   // Keyed so the form initialises exactly once per opened habit.
   return <HabitForm key={editing?.habit.id ?? 'new'} editing={editing} initialListId={params.listId} />;
@@ -76,11 +79,11 @@ function HabitForm({ editing, initialListId }: { editing: HabitContext | undefin
       rule: { type: 'daily' },
       startDate: today,
       endDate: null,
-      reminders: [],
+      reminders: [{ time: reminderTimeFor(settings.defaultReminderTimes, 'anytime'), weekdays: null, enabled: true }],
     };
   });
 
-  const { control, handleSubmit, formState } = useForm<HabitFormValues>({
+  const { control, handleSubmit, formState, getValues, setValue } = useForm<HabitFormValues>({
     resolver: zodResolver(habitFormSchema),
     defaultValues: defaults,
     mode: 'onBlur',
@@ -99,20 +102,38 @@ function HabitForm({ editing, initialListId }: { editing: HabitContext | undefin
   const ruleChanged = !!editing && !rulesEqual(defaults.rule, rule);
   const hasHistory = !!editing && editing.habit.startDate < today;
 
+  // A new habit's default reminder follows the chosen time of day until the user changes it.
+  const autoReminderTime = useRef(editing ? null : defaults.reminders[0]?.time ?? null);
+  useEffect(() => {
+    if (autoReminderTime.current == null) return;
+    const reminders = getValues('reminders');
+    if (reminders.length !== 1 || reminders[0].time !== autoReminderTime.current) {
+      autoReminderTime.current = null;
+      return;
+    }
+    const time = reminderTimeFor(settings.defaultReminderTimes, timeOfDay);
+    if (time === autoReminderTime.current) return;
+    autoReminderTime.current = time;
+    setValue('reminders', [{ ...reminders[0], time }]);
+  }, [timeOfDay, settings.defaultReminderTimes, getValues, setValue]);
+
   const onSubmit = handleSubmit(async (values) => {
     setSaving(true);
+    if (values.reminders.some((r) => r.enabled)) await ensureReminderPermission();
     const result = editing
       ? await actions.updateHabit(editing.habit.id, values, ruleChanged ? applyFrom : 'today')
       : await actions.createHabit(values);
     setSaving(false);
-    if (result) router.back();
+    if (!result) return;
+    haptics.success();
+    router.back();
   });
 
-  const defaultReminderTime =
-    timeOfDay === 'anytime' ? settings.defaultReminderTimes.morning : settings.defaultReminderTimes[timeOfDay];
+  const defaultReminderTime = reminderTimeFor(settings.defaultReminderTimes, timeOfDay);
 
   const confirmDelete = () => {
     if (!editing) return;
+    haptics.warning();
     Alert.alert(
       `Delete “${editing.habit.name}”?`,
       'This permanently removes the habit and its entire history. To keep the history, archive it instead.',
@@ -133,6 +154,9 @@ function HabitForm({ editing, initialListId }: { editing: HabitContext | undefin
       <Stack.Screen
         options={{
           title: editing ? 'Edit habit' : 'New habit',
+          // Header items are iOS-only; Android renders headerLeft/headerRight instead.
+          headerLeft: () => <HeaderDismissButton title="Cancel" onPress={() => router.back()} />,
+          headerRight: () => <Button title="Save" size="sm" onPress={onSubmit} loading={saving} />,
           // iOS 26 wraps header views in a glass pill; hide it so our own button styling shows.
           unstable_headerLeftItems: () => [
             {

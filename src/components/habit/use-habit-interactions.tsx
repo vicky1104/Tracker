@@ -6,6 +6,7 @@ import { useActions } from '@/data/hooks';
 import { formatLocalDate } from '@/domain/dates';
 import type { DayItem } from '@/domain/stats';
 import type { Completion, Habit, LocalDate } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 import { showToast } from '@/state/app-store';
 
 import type { HabitRowHandlers } from './habit-row';
@@ -34,6 +35,7 @@ export function useHabitInteractions(today: LocalDate): {
 
   const toggle = (habit: Habit, date: LocalDate, record: Completion | null) => {
     if (date > today) {
+      haptics.warning();
       showToast({ message: 'You can log this day when it arrives.' });
       return;
     }
@@ -42,6 +44,7 @@ export function useHabitInteractions(today: LocalDate): {
       setValue({ habit, date, record });
       return;
     }
+    haptics.toggle(record?.status !== 'done');
     void actions.toggleDone(habit, date, record).then((ok) => {
       if (ok && record?.status === 'done') {
         showToast({ message: `${habit.name}: completion removed`, actionLabel: 'Undo', onAction: () => void actions.restoreRecord(record) });
@@ -49,7 +52,10 @@ export function useHabitInteractions(today: LocalDate): {
     });
   };
 
-  const openMenu = (habit: Habit, date: LocalDate, record: Completion | null) => setMenu({ habit, date, record });
+  const openMenu = (habit: Habit, date: LocalDate, record: Completion | null) => {
+    haptics.longPress();
+    setMenu({ habit, date, record });
+  };
 
   const menuActions = (t: Target): SheetAction[] => {
     const { habit, date, record } = t;

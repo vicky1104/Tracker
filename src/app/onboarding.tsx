@@ -17,6 +17,8 @@ import { starterSuggestions } from '@/domain/templates';
 import type { FirstDayOfWeek, HabitCategory } from '@/domain/types';
 import { todayLocal } from '@/lib/clock';
 import { isSupabaseConfigured } from '@/config/env';
+import { haptics } from '@/lib/haptics';
+import { ensureReminderPermission, reminderTimeFor } from '@/services/notifications';
 import { useTheme } from '@/theme/theme';
 import { MAX_CONTENT_WIDTH, radius, spacing } from '@/theme/tokens';
 
@@ -43,6 +45,7 @@ export default function OnboardingScreen() {
     await update({ onboardingCompleted: true, focusAreas: areas, firstDayOfWeek: fdw, defaultReminderTimes: times });
     const listId = lists.find((l) => !l.archivedOn)?.id;
     if (createStarters && listId) {
+      if (picked.size > 0) await ensureReminderPermission();
       let i = 0;
       for (const s of suggestions.filter((x) => picked.has(x.name))) {
         await actions.createHabit({
@@ -60,11 +63,12 @@ export default function OnboardingScreen() {
           rule: s.rule,
           startDate: todayLocal(),
           endDate: null,
-          reminders: [], // reminders are only added when the user sets them up
+          reminders: [{ time: reminderTimeFor(times, s.timeOfDay), weekdays: null, enabled: true }],
         });
       }
     }
     setSaving(false);
+    haptics.success();
     router.replace('/today');
   };
 
@@ -168,7 +172,7 @@ export default function OnboardingScreen() {
                 </View>
               ))}
               <Text variant="caption" tone="tertiary">
-                These are just defaults. We’ll only ask for notification permission when you add your first reminder.
+                Each new habit gets a reminder at the matching time. We’ll ask for notification permission when you add your first habit.
               </Text>
             </>
           )}

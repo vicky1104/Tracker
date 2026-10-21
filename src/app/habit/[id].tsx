@@ -10,7 +10,8 @@ import { ActionSheet } from '@/components/ui/action-sheet';
 import { Button, IconButton } from '@/components/ui/button';
 import { Row } from '@/components/ui/controls';
 import { HabitIcon } from '@/components/ui/habit-icon';
-import { Card, Divider, EmptyState, LoadingState, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { HabitDetailSkeleton } from '@/components/ui/screen-skeletons';
 import { Text } from '@/components/ui/text';
 import { CATEGORY_LABELS, TIME_OF_DAY_LABELS } from '@/constants/palette';
 import { useActions, useHabitData, useSettings } from '@/data/hooks';
@@ -18,6 +19,7 @@ import { addDays, formatLocalDate, formatTimeLabel, startOfMonth, weekdayShortNa
 import { describeRule, versionOn } from '@/domain/schedule';
 import { evaluateHabit, type HabitStats } from '@/domain/stats';
 import { useToday } from '@/hooks/use-today';
+import { haptics } from '@/lib/haptics';
 import { spacing } from '@/theme/tokens';
 
 const EMPTY = new Map();
@@ -52,7 +54,7 @@ export default function HabitDetailScreen() {
     };
   }, [ctx, records, today, settings.firstDayOfWeek]);
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <HabitDetailSkeleton />;
   if (!ctx || !stats) {
     return (
       <Screen>
@@ -66,11 +68,13 @@ export default function HabitDetailScreen() {
   const rule = versionOn(ctx, today < habit.startDate ? habit.startDate : today).version.rule;
   const last14 = Array.from({ length: 14 }, (_, i) => addDays(today, i - 13));
 
-  const confirmDelete = () =>
+  const confirmDelete = () => {
+    haptics.warning();
     Alert.alert(`Delete “${habit.name}”?`, 'This permanently removes the habit and its entire history. To keep the history, archive it instead.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => void actions.deleteHabit(habit.id).then((ok) => ok && router.back()) },
     ]);
+  };
 
   return (
     <View style={styles.flex}>

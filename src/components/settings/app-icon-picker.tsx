@@ -3,6 +3,7 @@ import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { haptics } from '@/lib/haptics';
 import { APP_ICONS, getAppIcon, setAppIcon, supportsAppIcons } from '@/services/app-icon';
 import { useTheme } from '@/theme/theme';
 import { spacing } from '@/theme/tokens';
@@ -17,6 +18,7 @@ export function AppIconPicker({ locked, onLockedPress }: { locked: boolean; onLo
     try {
       setCurrent(await setAppIcon(name));
     } catch {
+      haptics.error();
       Alert.alert('Couldn’t change the icon', 'Please try again.');
     }
   };
@@ -45,7 +47,10 @@ export function AppIconPicker({ locked, onLockedPress }: { locked: boolean; onLo
           return (
             <Pressable
               key={icon.id}
-              onPress={() => void choose(icon.name)}
+              onPress={() => {
+                if (!selected) haptics.selection();
+                void choose(icon.name);
+              }}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
               accessibilityLabel={`${icon.label}${locked && icon.name ? ', premium' : ''}`}

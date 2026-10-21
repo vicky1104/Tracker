@@ -15,6 +15,7 @@ import { useActions } from '@/data/hooks';
 import { getSettings } from '@/db/settings';
 import { wipeLocalData } from '@/db/maintenance';
 import { errorMessage } from '@/lib/errors';
+import { haptics } from '@/lib/haptics';
 import { deleteAccount, signOut, useAuth } from '@/services/auth';
 import { unregisterPushToken } from '@/services/push';
 import { syncNow } from '@/services/sync';
@@ -29,7 +30,8 @@ export default function AccountScreen() {
   const { limits } = usePlan();
   const [busy, setBusy] = useState(false);
 
-  const wipeDevice = () =>
+  const wipeDevice = () => {
+    haptics.warning();
     Alert.alert('Delete all data on this device?', 'All lists, habits, history and settings on this device will be permanently erased. Export a backup first if you might want them later.', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -45,8 +47,10 @@ export default function AccountScreen() {
         },
       },
     ]);
+  };
 
-  const confirmDeleteAccount = () =>
+  const confirmDeleteAccount = () => {
+    haptics.warning();
     Alert.alert(
       'Delete your account?',
       'Your account and all data stored in the cloud will be permanently deleted. Data on this device stays unless you also erase it.\n\nSubscriptions are billed by Apple or Google — cancel them in your store account settings to stop renewals.',
@@ -69,6 +73,7 @@ export default function AccountScreen() {
         },
       ],
     );
+  };
 
   return (
     <Screen keyboardShouldPersistTaps="handled">

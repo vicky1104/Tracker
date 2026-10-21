@@ -12,7 +12,7 @@ export type SyncStatus = 'disabled' | 'idle' | 'syncing' | 'error' | 'offline';
 export interface Toast {
   id: number;
   message: string;
-  tone?: 'default' | 'error';
+  tone?: 'default' | 'success' | 'error';
   actionLabel?: string;
   onAction?: () => void;
 }

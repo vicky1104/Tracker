@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
+import { Button, HeaderDismissButton } from '@/components/ui/button';
 import { TextField } from '@/components/ui/controls';
-import { Card, LoadingState, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Screen, SectionHeader } from '@/components/ui/layout';
+import { FormSkeleton } from '@/components/ui/screen-skeletons';
 import { ColorPicker, IconPicker } from '@/components/ui/pickers';
 import { LIST_ICON_KEYS } from '@/constants/habit-icons';
 import { useActions, useHabitData } from '@/data/hooks';
 import { listFormSchema, type ListFormValues } from '@/domain/validation';
+import { haptics } from '@/lib/haptics';
 import { spacing } from '@/theme/tokens';
 
 const SUGGESTIONS = ['Morning routine', 'Fitness', 'Study plan', 'Work', 'Evening routine'];
@@ -30,13 +32,15 @@ export default function ListEditScreen() {
     if (editing) reset({ name: editing.name, color: editing.color, icon: editing.icon });
   }, [editing, reset]);
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <FormSkeleton />;
 
   const onSubmit = handleSubmit(async (values) => {
     setSaving(true);
     const ok = editing ? await actions.updateList(editing.id, values) : await actions.createList(values);
     setSaving(false);
-    if (ok) router.back();
+    if (!ok) return;
+    haptics.success();
+    router.back();
   });
 
   return (
@@ -44,7 +48,7 @@ export default function ListEditScreen() {
       <Stack.Screen
         options={{
           title: editing ? 'Edit list' : 'New list',
-          headerLeft: () => <Button title="Cancel" variant="ghost" size="sm" onPress={() => router.back()} />,
+          headerLeft: () => <HeaderDismissButton title="Cancel" onPress={() => router.back()} />,
           headerRight: () => <Button title="Save" size="sm" onPress={onSubmit} loading={saving} />,
         }}
       />

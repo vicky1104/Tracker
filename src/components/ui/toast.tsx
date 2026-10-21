@@ -3,6 +3,7 @@ import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { haptics } from '@/lib/haptics';
 import { useAppStore } from '@/state/app-store';
 import { useTheme } from '@/theme/theme';
 import { MAX_CONTENT_WIDTH, radius, spacing } from '@/theme/tokens';
@@ -20,6 +21,8 @@ export function ToastHost() {
 
   useEffect(() => {
     if (!toast) return;
+    if (toast.tone === 'error') haptics.error();
+    else if (toast.tone === 'success') haptics.success();
     AccessibilityInfo.announceForAccessibility(toast.message);
     const t = setTimeout(hide, toast.actionLabel ? 5000 : 2800);
     return () => clearTimeout(t);

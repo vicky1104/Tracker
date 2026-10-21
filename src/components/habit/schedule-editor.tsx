@@ -4,6 +4,7 @@ import { Chip, Stepper } from '@/components/ui/controls';
 import { WeekdayPicker } from '@/components/ui/pickers';
 import { Text } from '@/components/ui/text';
 import type { FirstDayOfWeek, ScheduleRule } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -88,7 +89,9 @@ export function ScheduleEditor({
                   key={d}
                   onPress={() => {
                     const days = selected ? value.days.filter((x) => x !== d) : [...value.days, d].sort((a, b) => a - b);
-                    if (days.length) onChange({ type: 'monthDays', days });
+                    if (!days.length) return;
+                    haptics.selection();
+                    onChange({ type: 'monthDays', days });
                   }}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: selected }}

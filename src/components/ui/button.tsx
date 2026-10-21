@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme/theme';
 import { MIN_TOUCH, radius, spacing } from '@/theme/tokens';
@@ -107,6 +107,19 @@ export function IconButton({
   );
 }
 
+/**
+ * Leading header control that dismisses a modal: a text button on iOS (HIG), a close icon on
+ * Android (Material), where a text label crowds the left-aligned title.
+ */
+export function HeaderDismissButton({ title = 'Close', onPress }: { title?: string; onPress: () => void }) {
+  if (Platform.OS !== 'android') return <Button title={title} variant="ghost" size="sm" onPress={onPress} />;
+  return (
+    <View style={styles.headerDismiss}>
+      <IconButton icon="close" label={title} size={24} onPress={onPress} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   base: {
     minHeight: MIN_TOUCH + 4,
@@ -124,4 +137,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Material top app bar: icon 16dp from the edge, title starting at 72dp.
+  headerDismiss: { marginLeft: -10, marginRight: 22 },
 });

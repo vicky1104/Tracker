@@ -5,7 +5,8 @@ import { StyleSheet, View } from 'react-native';
 import { HabitSummaryRow } from '@/components/habit/habit-summary-row';
 import { Chip, ChipRow, TextField } from '@/components/ui/controls';
 import { HabitGlyph } from '@/components/ui/habit-icon';
-import { Card, Divider, EmptyState, LoadingState, Screen } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, Screen } from '@/components/ui/layout';
+import { HabitSearchSkeleton } from '@/components/ui/screen-skeletons';
 import { Text } from '@/components/ui/text';
 import { CATEGORY_LABELS } from '@/constants/palette';
 import { useHabitData } from '@/data/hooks';
@@ -39,7 +40,7 @@ export default function HabitSearchScreen() {
     });
   }, [data.contexts, query, status, listId, category, kind]);
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <HabitSearchSkeleton />;
   const usedCategories = [...new Set(data.contexts.map((c) => c.habit.category))];
 
   return (

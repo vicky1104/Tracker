@@ -7,7 +7,8 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/controls';
-import { Card, ErrorState, LoadingState, Screen } from '@/components/ui/layout';
+import { Card, ErrorState, Screen } from '@/components/ui/layout';
+import { LoadingState } from '@/components/ui/screen-skeletons';
 import { Text } from '@/components/ui/text';
 import { errorMessage } from '@/lib/errors';
 import { completeAuthRedirect, updatePassword } from '@/services/auth';

@@ -8,6 +8,7 @@ import {
   type PanResponderInstance,
 } from 'react-native';
 
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { spacing } from '@/theme/tokens';
 
@@ -67,7 +68,10 @@ class DragController<T> {
     this.dy.setValue(0);
     this.setDrag(null);
     this.onDragActive?.(false);
-    if (commit && d) this.move(d.index, d.target);
+    if (commit && d) {
+      haptics.drop();
+      this.move(d.index, d.target);
+    }
   }
 
   handlersFor(index: number) {
@@ -78,6 +82,7 @@ class DragController<T> {
         onMoveShouldSetPanResponder: () => true,
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
+          haptics.dragStart();
           this.drag = { index, target: index };
           this.dy.setValue(0);
           this.setDrag(this.drag);
@@ -87,6 +92,7 @@ class DragController<T> {
           this.dy.setValue(g.dy);
           const t = this.targetFor(index, g.dy);
           if (this.drag && this.drag.target !== t) {
+            haptics.selection();
             this.drag = { index, target: t };
             this.setDrag(this.drag);
           }
@@ -169,13 +175,20 @@ export function ReorderableList<T>({
                 <Icon name="drag" size={20} color={colors.textTertiary} />
               </View>
               <View style={styles.content}>{renderItem(item)}</View>
-              <IconButton icon="up" size={18} label={`Move ${labelOf(item)} up`} disabled={index === 0} onPress={() => controller.move(index, index - 1)} />
+              <IconButton icon="up" size={18} label={`Move ${labelOf(item)} up`} disabled={index === 0} onPress={() => {
+                    haptics.selection();
+                    controller.move(index, index - 1);
+                  }}
+                />
               <IconButton
                 icon="down"
                 size={18}
                 label={`Move ${labelOf(item)} down`}
                 disabled={index === items.length - 1}
-                onPress={() => controller.move(index, index + 1)}
+                onPress={() => {
+                  haptics.selection();
+                  controller.move(index, index + 1);
+                }}
               />
             </Animated.View>
           </View>

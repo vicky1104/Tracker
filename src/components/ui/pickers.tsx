@@ -14,6 +14,7 @@ import {
   weekdayShortName,
 } from '@/domain/dates';
 import type { FirstDayOfWeek, LocalDate, Weekday } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { MIN_TOUCH, radius, spacing, withAlpha } from '@/theme/tokens';
 
@@ -45,7 +46,10 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (c: 
         return (
           <Pressable
             key={c}
-            onPress={() => onChange(c)}
+            onPress={() => {
+              if (!selected) haptics.selection();
+              onChange(c);
+            }}
             accessibilityRole="radio"
             accessibilityLabel={COLOR_NAMES[c] ?? c}
             accessibilityState={{ selected }}
@@ -80,7 +84,10 @@ export function IconPicker({
         return (
           <Pressable
             key={key}
-            onPress={() => onChange(key)}
+            onPress={() => {
+              if (!selected) haptics.selection();
+              onChange(key);
+            }}
             accessibilityRole="radio"
             accessibilityLabel={ICON_CATALOG[key].label}
             accessibilityState={{ selected }}
@@ -116,7 +123,9 @@ export function WeekdayPicker({
             key={d}
             onPress={() => {
               const next = selected ? value.filter((x) => x !== d) : [...value, d];
-              if (next.length > 0) onChange(next.sort());
+              if (next.length === 0) return;
+              haptics.selection();
+              onChange(next.sort());
             }}
             accessibilityRole="checkbox"
             accessibilityLabel={formatLocalDate(fromParts(2023, 1, 1 + d), { weekday: 'long' })}

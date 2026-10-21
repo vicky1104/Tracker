@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 
@@ -12,13 +12,15 @@ import { Text } from '@/components/ui/text';
 import { isSupabaseConfigured } from '@/config/env';
 import { resolveIconKey } from '@/constants/habit-icons';
 import { HABIT_COLORS } from '@/constants/palette';
-import { useActions, useHabitData } from '@/data/hooks';
+import { useActions, useHabitData, useSettings } from '@/data/hooks';
 import { weekdayShortName } from '@/domain/dates';
 import { describeRule } from '@/domain/schedule';
 import type { HabitSuggestion } from '@/domain/validation';
 import { todayLocal } from '@/lib/clock';
+import { haptics } from '@/lib/haptics';
 import { generatePlan, PlannerError } from '@/services/ai-planner';
 import { useAuth } from '@/services/auth';
+import { ensureReminderPermission, reminderTimeFor } from '@/services/notifications';
 import { useTheme } from '@/theme/theme';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -38,6 +40,7 @@ const DIFFICULTY = { easy: 'Easy', medium: 'Medium', hard: 'Challenging' } as co
 export default function PlannerScreen() {
   const { colors } = useTheme();
   const data = useHabitData();
+  const settings = useSettings();
   const actions = useActions();
   const [goal, setGoal] = useState('');
   const [loading, setLoading] = useState(false);
@@ -60,10 +63,18 @@ export default function PlannerScreen() {
         data.contexts.filter((c) => !c.habit.archivedOn).map((c) => c.habit.name),
       );
       setDrafts(
-        suggestions.map((s) => ({ suggestion: s, include: true, name: s.name, remind: false, reminderTime: s.reminderTime ?? '09:00' })),
+        suggestions.map((s) => ({
+          suggestion: s,
+          include: true,
+          name: s.name,
+          remind: true,
+          reminderTime: s.reminderTime ?? reminderTimeFor(settings.defaultReminderTimes, s.timeOfDay),
+        })),
       );
       setGenerated(true);
+      haptics.success();
     } catch (e) {
+      haptics.error();
       setDrafts([]);
       setGenerated(false);
       setError(e instanceof PlannerError ? e.message : 'Something went wrong. Please try again.');
@@ -76,6 +87,7 @@ export default function PlannerScreen() {
   const add = async () => {
     if (!targetList || selected.length === 0) return;
     setAdding(true);
+    if (selected.some((d) => d.remind)) await ensureReminderPermission();
     let i = 0;
     for (const d of selected) {
       const s = d.suggestion;
@@ -98,12 +110,12 @@ export default function PlannerScreen() {
       });
     }
     setAdding(false);
+    haptics.success();
     router.dismissTo('/today');
   };
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ headerLeft: () => <Button title="Close" variant="ghost" size="sm" onPress={() => router.back()} /> }} />
       <Screen keyboardShouldPersistTaps="handled">
         <Text tone="secondary">Describe a goal and get a few small, realistic habits. You review and edit everything before anything is added.</Text>
         <TextField

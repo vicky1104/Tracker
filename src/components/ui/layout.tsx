@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -141,15 +140,6 @@ export function EmptyState({
         </Text>
       )}
       {actionLabel && onAction && <Button title={actionLabel} onPress={onAction} icon="add" style={styles.emptyButton} />}
-    </View>
-  );
-}
-
-export function LoadingState({ label = 'Loading…' }: { label?: string }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.fill, { backgroundColor: colors.background }]} accessibilityLabel={label}>
-      <ActivityIndicator color={colors.accent} />
     </View>
   );
 }

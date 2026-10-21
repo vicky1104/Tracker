@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BarChart } from '@/components/charts/charts';
@@ -8,7 +8,8 @@ import { HabitRow } from '@/components/habit/habit-row';
 import { useHabitInteractions } from '@/components/habit/use-habit-interactions';
 import { IconButton } from '@/components/ui/button';
 import { Chip, ChipRow } from '@/components/ui/controls';
-import { Card, Divider, EmptyState, ErrorState, LoadingState, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, ErrorState, Screen, SectionHeader } from '@/components/ui/layout';
+import { TodaySkeleton } from '@/components/ui/screen-skeletons';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Text } from '@/components/ui/text';
 import { TIME_OF_DAY_LABELS } from '@/constants/palette';
@@ -19,6 +20,7 @@ import { daySummary, type DayItem } from '@/domain/stats';
 import type { TimeOfDay } from '@/domain/types';
 import { useToday } from '@/hooks/use-today';
 import { errorMessage } from '@/lib/errors';
+import { haptics } from '@/lib/haptics';
 import { now } from '@/lib/clock';
 import { useAppStore } from '@/state/app-store';
 import { useTheme } from '@/theme/theme';
@@ -65,6 +67,15 @@ export default function TodayScreen() {
     [contexts, data.records, selectedDate, today, fdw],
   );
 
+  // Celebrate the moment the last habit of the day is completed (not when opening an already finished day).
+  const allDone = summary.due > 0 && summary.done >= summary.due;
+  const lastDay = useRef({ date: selectedDate, allDone });
+  useEffect(() => {
+    const prev = lastDay.current;
+    if (prev.date === selectedDate && allDone && !prev.allDone) haptics.success();
+    lastDay.current = { date: selectedDate, allDone };
+  }, [selectedDate, allDone]);
+
   const weekStart = startOfWeek(selectedDate, fdw);
   const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -89,7 +100,7 @@ export default function TodayScreen() {
     return SECTION_ORDER.filter((t) => groups.has(t)).map((t) => ({ key: t, items: groups.get(t)! }));
   }, [summary.items]);
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <TodaySkeleton />;
   if (data.error) return <ErrorState message={errorMessage(data.error)} onRetry={data.refetch} />;
 
   const isToday = selectedDate === today;

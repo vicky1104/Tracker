@@ -21,6 +21,7 @@ import type { DailyPoint } from "@/domain/stats";
 import type { FirstDayOfWeek, LocalDate } from "@/domain/types";
 import { useTheme } from "@/theme/theme";
 import { radius, spacing, withAlpha } from "@/theme/tokens";
+import { haptics } from '@/lib/haptics';
 
 const pctLabel = (p: number | null) =>
   p == null ? "no data" : `${Math.round(p * 100)}%`;
@@ -267,7 +268,10 @@ export function MonthGrid({
                 key={d}
                 style={styles.monthCell}
                 disabled={!onSelect}
-                onPress={() => onSelect?.(d)}
+                onPress={() => {
+                  if (!isSelected) haptics.selection();
+                  onSelect?.(d);
+                }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`${formatLocalDate(d, { weekday: "long", month: "long", day: "numeric" })}${isToday ? ", today" : ""}: ${cell.label}`}

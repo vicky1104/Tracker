@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import type { SheetAction } from '@/components/ui/action-sheet';
 import type { useActions } from '@/data/hooks';
 import type { HabitList } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 
 /** Shared list menu: edit, archive/restore, delete (with "move habits" option). */
 export function listMenuActions(
@@ -15,6 +16,7 @@ export function listMenuActions(
 ): SheetAction[] {
   const others = allLists.filter((l) => l.id !== list.id && !l.archivedOn);
   const confirmDelete = () => {
+    haptics.warning();
     if (habitCount === 0) {
       Alert.alert(`Delete “${list.name}”?`, 'This list has no habits.', [
         { text: 'Cancel', style: 'cancel' },

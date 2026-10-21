@@ -45,6 +45,12 @@
         }
       ],
       "expo-sqlite",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false
+        }
+      ],
       "expo-secure-store",
       [
         "expo-notifications",

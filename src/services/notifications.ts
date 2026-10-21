@@ -23,6 +23,7 @@ import { getSettings } from '@/db/settings';
 import { addDays, isValidLocalDate } from '@/domain/dates';
 import { diffNotifications, NOTIFICATION_PREFIX, planNotifications } from '@/domain/reminders';
 import { buildRecordsByHabit } from '@/domain/stats';
+import type { TimeOfDay, UserSettings } from '@/domain/types';
 import { now, todayLocal } from '@/lib/clock';
 
 export const REMINDER_CHANNEL_ID = 'habit-reminders';
@@ -89,6 +90,20 @@ export async function requestPermission(): Promise<PermissionState> {
     ios: { allowAlert: true, allowSound: true, allowBadge: false },
   });
   return mapPermission(p);
+}
+
+/**
+ * New habits start with a reminder, so ask the first time one is saved. Never re-prompts:
+ * a denied or already-granted permission is returned as is.
+ */
+export async function ensureReminderPermission(): Promise<PermissionState> {
+  const state = await getPermissionState().catch((): PermissionState => 'undetermined');
+  return state === 'undetermined' ? requestPermission().catch((): PermissionState => 'undetermined') : state;
+}
+
+/** The user's default reminder time for a habit's time of day ("anytime" uses the morning slot). */
+export function reminderTimeFor(times: UserSettings['defaultReminderTimes'], timeOfDay: TimeOfDay): string {
+  return timeOfDay === 'anytime' ? times.morning : times[timeOfDay];
 }
 
 export function openSystemSettings(): void {

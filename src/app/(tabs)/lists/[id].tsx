@@ -8,7 +8,8 @@ import { listMenuActions } from '@/components/list/list-actions';
 import { ActionSheet } from '@/components/ui/action-sheet';
 import { Button, IconButton } from '@/components/ui/button';
 import { HabitGlyph } from '@/components/ui/habit-icon';
-import { Card, Divider, EmptyState, LoadingState, Notice, SectionHeader } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, Notice, SectionHeader } from '@/components/ui/layout';
+import { ListDetailSkeleton } from '@/components/ui/screen-skeletons';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { ReorderableList } from '@/components/ui/reorderable-list';
 import { Text } from '@/components/ui/text';
@@ -61,7 +62,7 @@ export default function ListDetailScreen() {
     [active, data.records, today, settings.firstDayOfWeek],
   );
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <ListDetailSkeleton />;
   if (!list) {
     return <EmptyState icon="info" title="This list no longer exists" actionLabel="Back to lists" onAction={() => router.back()} />;
   }

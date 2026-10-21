@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { addDays, formatLocalDate, parseLocalDate } from '@/domain/dates';
 import type { LocalDate } from '@/domain/types';
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -58,7 +59,10 @@ export function DaySelector({
         const fg = isSelected ? colors.onAccent : isFuture ? colors.textTertiary : colors.text;
         return (
           <Pressable
-            onPress={() => onSelect(d)}
+            onPress={() => {
+              if (!isSelected) haptics.selection();
+              onSelect(d);
+            }}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
             accessibilityLabel={`${formatLocalDate(d, { weekday: 'long', month: 'long', day: 'numeric' })}${isToday ? ', today' : ''}${

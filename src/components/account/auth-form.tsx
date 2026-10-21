@@ -56,7 +56,7 @@ function SocialButtons({ onSignedIn }: { onSignedIn?: () => void }) {
     try {
       const ok = provider === 'google' ? await signInWithGoogle() : await signInWithApple();
       if (ok) {
-        showToast({ message: 'Signed in. Your habits on this device are kept.' });
+        showToast({ message: 'Signed in. Your habits on this device are kept.', tone: 'success' });
         onSignedIn?.();
       }
     } catch (error) {
@@ -104,7 +104,7 @@ export function AuthForm({ initialMode = 'signin', onSignedIn }: { initialMode?:
     try {
       if (mode === 'signin') {
         await signIn(email, password);
-        showToast({ message: 'Signed in. Your habits on this device are kept.' });
+        showToast({ message: 'Signed in. Your habits on this device are kept.', tone: 'success' });
         onSignedIn?.();
       } else {
         const { needsConfirmation } = await signUp(email, password);
@@ -112,7 +112,7 @@ export function AuthForm({ initialMode = 'signin', onSignedIn }: { initialMode?:
           setAwaitingConfirmation(email.trim());
           setMode('signin');
         } else {
-          showToast({ message: 'Account created — you’re signed in.' });
+          showToast({ message: 'Account created — you’re signed in.', tone: 'success' });
           onSignedIn?.();
         }
       }

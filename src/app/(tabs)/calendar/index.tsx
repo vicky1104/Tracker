@@ -8,16 +8,18 @@ import { useHabitInteractions } from '@/components/habit/use-habit-interactions'
 import { Button, IconButton } from '@/components/ui/button';
 import { Chip, ChipRow, SegmentedControl } from '@/components/ui/controls';
 import { HabitGlyph } from '@/components/ui/habit-icon';
-import { Card, Divider, EmptyState, ErrorState, LoadingState, Screen, SectionHeader } from '@/components/ui/layout';
+import { Card, Divider, EmptyState, ErrorState, Screen, SectionHeader } from '@/components/ui/layout';
+import { CalendarSkeleton } from '@/components/ui/screen-skeletons';
 import { TabHeader } from '@/components/ui/tab-header';
 import { Text } from '@/components/ui/text';
 import { useHabitData, useSettings } from '@/data/hooks';
-import { addDays, addMonths, endOfMonth, endOfWeek, formatLocalDate, startOfMonth, startOfWeek } from '@/domain/dates';
+import { addDays, addMonths, diffDays, endOfMonth, endOfWeek, formatLocalDate, startOfMonth, startOfWeek } from '@/domain/dates';
 import { isActiveOn } from '@/domain/schedule';
 import { daySummary } from '@/domain/stats';
 import type { LocalDate } from '@/domain/types';
 import { useToday } from '@/hooks/use-today';
 import { errorMessage } from '@/lib/errors';
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { MIN_TOUCH, radius, spacing, withAlpha } from '@/theme/tokens';
 
@@ -52,7 +54,7 @@ export default function CalendarScreen() {
   }, [contexts, data.records, today, fdw, month, weekStart, selected]);
   const summaryFor = (d: LocalDate) => summaries.get(d) ?? daySummary(contexts, data.records, d, today, fdw);
 
-  if (data.isLoading) return <LoadingState />;
+  if (data.isLoading) return <CalendarSkeleton />;
   if (data.error) return <ErrorState message={errorMessage(data.error)} onRetry={data.refetch} />;
 
   const dayCell = (d: LocalDate): DayCellStyle => {
@@ -68,6 +70,23 @@ export default function CalendarScreen() {
     return { percent: p, glyph: s.percent === 1 ? '✓' : s.done === 0 && d < today ? '×' : undefined, label };
   };
 
+  // Keep the selected day inside the visible month/week so the list below always matches it.
+  const thisWeek = startOfWeek(today, fdw);
+  const showWeek = (start: LocalDate) => {
+    const offset = Math.min(6, Math.max(0, diffDays(weekStart, selected)));
+    setWeekStart(start);
+    setSelected(start === thisWeek ? today : addDays(start, offset));
+  };
+  const showMonth = (first: LocalDate) => {
+    setMonth(first);
+    setSelected(first === startOfMonth(today) ? today : first);
+  };
+  const changeMode = (next: Mode) => {
+    setMode(next);
+    if (next === 'week') setWeekStart(startOfWeek(selected, fdw));
+    else setMonth(startOfMonth(selected));
+  };
+
   const selectedSummary = summaryFor(selected);
   const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekHabits = contexts.filter((c) => week.some((d) => isActiveOn(c, d)));
@@ -79,7 +98,7 @@ export default function CalendarScreen() {
         <SegmentedControl<Mode>
           accessibilityLabel="Calendar view"
           value={mode}
-          onChange={setMode}
+          onChange={changeMode}
           options={[
             { value: 'month', label: 'Month' },
             { value: 'week', label: 'Week' },
@@ -97,11 +116,11 @@ export default function CalendarScreen() {
         {mode === 'month' ? (
           <Card style={styles.gap}>
             <View style={styles.nav}>
-              <IconButton icon="chevronLeft" label="Previous month" onPress={() => setMonth(addMonths(month, -1))} />
+              <IconButton icon="chevronLeft" label="Previous month" onPress={() => showMonth(addMonths(month, -1))} />
               <Text variant="heading" accessibilityRole="header" style={styles.navTitle}>
                 {monthTitle(month)}
               </Text>
-              <IconButton icon="chevronRight" label="Next month" onPress={() => setMonth(addMonths(month, 1))} />
+              <IconButton icon="chevronRight" label="Next month" onPress={() => showMonth(addMonths(month, 1))} />
             </View>
             <MonthGrid
               month={month}
@@ -125,96 +144,119 @@ export default function CalendarScreen() {
                 title="Back to this month"
                 variant="ghost"
                 size="sm"
-                onPress={() => {
-                  setMonth(startOfMonth(today));
-                  setSelected(today);
-                }}
+                onPress={() => showMonth(startOfMonth(today))}
               />
             )}
           </Card>
         ) : (
-          <Card padded={false}>
-            <View style={[styles.nav, styles.weekNav]}>
-              <IconButton icon="chevronLeft" label="Previous week" onPress={() => setWeekStart(addDays(weekStart, -7))} />
+          <Card padded={false} style={styles.weekCard}>
+            <View style={[styles.nav, styles.weekInset]}>
+              <IconButton icon="chevronLeft" label="Previous week" onPress={() => showWeek(addDays(weekStart, -7))} />
               <Text variant="heading" accessibilityRole="header" style={styles.navTitle}>
                 {formatLocalDate(weekStart, { month: 'short', day: 'numeric' })} – {formatLocalDate(endOfWeek(weekStart, fdw), { month: 'short', day: 'numeric' })}
               </Text>
-              <IconButton icon="chevronRight" label="Next week" onPress={() => setWeekStart(addDays(weekStart, 7))} />
+              <IconButton icon="chevronRight" label="Next week" onPress={() => showWeek(addDays(weekStart, 7))} />
             </View>
-            <View style={styles.weekHeader}>
-              <View style={styles.weekName} />
-              {week.map((d) => (
-                <Pressable key={d} style={styles.weekCol} onPress={() => setSelected(d)} accessibilityRole="button" accessibilityLabel={`Show ${formatLocalDate(d, { weekday: 'long', day: 'numeric', month: 'long' })}`}>
-                  <Text variant="micro" tone={d === today ? 'accent' : 'tertiary'} maxFontSizeMultiplier={1.2}>
-                    {formatLocalDate(d, { weekday: 'narrow' })}
-                  </Text>
-                  <Text variant="captionStrong" tone={d === selected ? 'accent' : 'primary'} maxFontSizeMultiplier={1.2}>
-                    {formatLocalDate(d, { day: 'numeric' })}
-                  </Text>
-                </Pressable>
-              ))}
+            <View style={[styles.weekGrid, styles.weekInset]}>
+              {week.map((d) => {
+                const isSelected = d === selected;
+                const isToday = d === today;
+                const fg = isSelected ? colors.onAccent : isToday ? colors.accent : colors.text;
+                return (
+                  <Pressable
+                    key={d}
+                    style={styles.weekCol}
+                    onPress={() => {
+                      if (!isSelected) haptics.selection();
+                      setSelected(d);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`${formatLocalDate(d, { weekday: 'long', day: 'numeric', month: 'long' })}${isToday ? ', today' : ''}`}>
+                    <View style={[styles.dayPill, { backgroundColor: isSelected ? colors.accent : isToday ? colors.accentSoft : 'transparent' }]}>
+                      <Text variant="micro" color={isSelected || isToday ? fg : colors.textTertiary} maxFontSizeMultiplier={1.2}>
+                        {formatLocalDate(d, { weekday: 'narrow' })}
+                      </Text>
+                      <Text variant="bodyStrong" color={fg} maxFontSizeMultiplier={1.2}>
+                        {formatLocalDate(d, { day: 'numeric' })}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
             {weekHabits.length === 0 ? (
-              <EmptyState icon="calendar" title="No habits this week" />
+              <EmptyState icon="calendar" title="No habits this week" message="Habits scheduled for these days will show up here." />
             ) : (
-              weekHabits.map((ctx, i) => {
+              weekHabits.map((ctx) => {
                 const records = data.records.get(ctx.habit.id) ?? new Map();
                 return (
                   <View key={ctx.habit.id}>
-                    {i > 0 && <Divider />}
-                    <View style={styles.weekRow}>
-                      <View style={[styles.weekName, styles.weekNameRow]}>
-                        <HabitGlyph icon={ctx.habit.icon} color={ctx.habit.color} size={14} />
-                        <Text numberOfLines={2} variant="caption" style={styles.flex}>
+                    <Divider />
+                    <View style={styles.habitBlock}>
+                      <View style={styles.habitName}>
+                        <HabitGlyph icon={ctx.habit.icon} color={ctx.habit.color} size={16} />
+                        <Text numberOfLines={1} variant="captionStrong" style={styles.flex}>
                           {ctx.habit.name}
                         </Text>
                       </View>
-                      {week.map((d) => {
-                        const cell = habitCell(ctx, records, d, today);
-                        const record = records.get(d) ?? null;
-                        const full = cell.percent === 1;
-                        return (
-                          <Pressable
-                            key={d}
-                            style={styles.weekCol}
-                            onPress={() => (d > today ? openMenu(ctx.habit, d, record) : toggle(ctx.habit, d, record))}
-                            onLongPress={() => openMenu(ctx.habit, d, record)}
-                            disabled={cell.muted && !record}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${ctx.habit.name}, ${formatLocalDate(d, { weekday: 'long', day: 'numeric' })}: ${cell.label}`}
-                            accessibilityHint="Tap to toggle done, long press for more options">
-                            <View
-                              style={[
-                                styles.weekCell,
-                                {
-                                  backgroundColor: full
-                                    ? ctx.habit.color
-                                    : cell.percent && cell.percent > 0
-                                      ? withAlpha(ctx.habit.color, 0.35)
-                                      : cell.muted
-                                        ? 'transparent'
-                                        : colors.surfaceMuted,
-                                  borderColor: cell.muted ? colors.border : 'transparent',
-                                },
-                              ]}>
-                              <Text variant="captionStrong" color={full ? '#FFFFFF' : colors.textSecondary} maxFontSizeMultiplier={1}>
-                                {cell.glyph ?? ''}
-                              </Text>
-                            </View>
-                          </Pressable>
-                        );
-                      })}
+                      <View style={[styles.weekGrid, styles.weekInset]}>
+                        {week.map((d) => {
+                          const cell = habitCell(ctx, records, d, today);
+                          const record = records.get(d) ?? null;
+                          const full = cell.percent === 1;
+                          return (
+                            <Pressable
+                              key={d}
+                              style={styles.weekCol}
+                              onPress={() => (d > today ? openMenu(ctx.habit, d, record) : toggle(ctx.habit, d, record))}
+                              onLongPress={() => openMenu(ctx.habit, d, record)}
+                              disabled={cell.muted && !record}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${ctx.habit.name}, ${formatLocalDate(d, { weekday: 'long', day: 'numeric' })}: ${cell.label}`}
+                              accessibilityHint="Tap to toggle done, long press for more options">
+                              <View
+                                style={[
+                                  styles.weekCell,
+                                  {
+                                    backgroundColor: full
+                                      ? ctx.habit.color
+                                      : cell.percent && cell.percent > 0
+                                        ? withAlpha(ctx.habit.color, 0.35)
+                                        : cell.muted
+                                          ? 'transparent'
+                                          : colors.surfaceMuted,
+                                    borderColor: cell.muted ? colors.border : 'transparent',
+                                  },
+                                ]}>
+                                <Text variant="captionStrong" color={full ? '#FFFFFF' : colors.textSecondary} maxFontSizeMultiplier={1}>
+                                  {cell.glyph ?? ''}
+                                </Text>
+                              </View>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
                     </View>
                   </View>
                 );
               })
+            )}
+            {weekStart !== thisWeek && (
+              <View style={styles.weekInset}>
+                <Button title="Back to this week" variant="ghost" size="sm" onPress={() => showWeek(thisWeek)} />
+              </View>
             )}
           </Card>
         )}
 
         <SectionHeader title={formatLocalDate(selected, { weekday: 'long', month: 'long', day: 'numeric' })} />
         {selectedSummary.items.length === 0 ? (
-          <Text tone="secondary">Nothing scheduled on this day.</Text>
+          <Card>
+            <Text tone="secondary" style={styles.center}>
+              Nothing scheduled on this day.
+            </Text>
+          </Card>
         ) : (
           <>
             <Text variant="caption" tone="secondary">
@@ -241,12 +283,14 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   gap: { gap: spacing.md },
   nav: { flexDirection: 'row', alignItems: 'center' },
-  weekNav: { paddingHorizontal: spacing.sm, paddingTop: spacing.sm },
   navTitle: { flex: 1, textAlign: 'center' },
-  weekHeader: { flexDirection: 'row', paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
-  weekRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  weekName: { width: 92, paddingRight: spacing.xs },
-  weekNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  center: { textAlign: 'center' },
+  weekCard: { paddingVertical: spacing.sm },
+  weekInset: { paddingHorizontal: spacing.sm },
+  weekGrid: { flexDirection: 'row' },
   weekCol: { flex: 1, alignItems: 'center', minHeight: MIN_TOUCH, justifyContent: 'center' },
-  weekCell: { width: 30, height: 30, borderRadius: radius.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  dayPill: { alignSelf: 'stretch', marginHorizontal: 2, paddingVertical: spacing.sm, borderRadius: radius.md, alignItems: 'center', gap: 2 },
+  habitBlock: { paddingTop: spacing.md, paddingBottom: spacing.xs, gap: spacing.xs },
+  habitName: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
+  weekCell: { width: 32, height: 32, borderRadius: radius.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

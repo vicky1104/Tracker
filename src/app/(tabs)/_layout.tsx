@@ -8,6 +8,8 @@ export default function TabLayout() {
     <NativeTabs
       tintColor={colors.accent}
       backgroundColor={colors.surface}
+      indicatorColor={colors.accentSoft}
+      labelVisibilityMode="labeled"
       labelStyle={{ selected: { color: colors.accent } }}>
       <NativeTabs.Trigger name="today">
         <NativeTabs.Trigger.Label>Today</NativeTabs.Trigger.Label>

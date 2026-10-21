@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/ui/button';
+import { Button, HeaderDismissButton } from '@/components/ui/button';
 import { SwitchRow } from '@/components/ui/controls';
 import { Icon } from '@/components/ui/icon';
 import { Card, Notice, Screen, SectionHeader } from '@/components/ui/layout';
+import { PlanOptionsSkeleton } from '@/components/ui/screen-skeletons';
 import { Text } from '@/components/ui/text';
 import { env } from '@/config/env';
 import { errorMessage } from '@/lib/errors';
@@ -49,7 +50,7 @@ export default function PremiumScreen() {
     try {
       const outcome = await purchase(chosen);
       if (outcome === 'success') {
-        showToast({ message: 'Welcome to Premium — thank you!' });
+        showToast({ message: 'Welcome to Premium — thank you!', tone: 'success' });
         router.back();
       } else if (outcome === 'pending') {
         showToast({ message: 'Your purchase is pending approval. Premium unlocks as soon as it completes.' });
@@ -67,7 +68,11 @@ export default function PremiumScreen() {
     setBusy('restore');
     try {
       const e = await restorePurchases();
-      showToast({ message: e.premium ? 'Purchases restored — Premium is active.' : 'No active subscription was found for this account.' });
+      showToast(
+        e.premium
+          ? { message: 'Purchases restored — Premium is active.', tone: 'success' }
+          : { message: 'No active subscription was found for this account.' },
+      );
     } catch (error) {
       showToast({ message: errorMessage(error, 'Couldn’t restore purchases. Check your connection and try again.'), tone: 'error' });
     } finally {
@@ -77,7 +82,7 @@ export default function PremiumScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ headerLeft: () => <Button title="Close" variant="ghost" size="sm" onPress={() => router.back()} /> }} />
+      <Stack.Screen options={{ headerLeft: () => <HeaderDismissButton onPress={() => router.back()} /> }} />
 
       {entitlement.premium ? (
         <Card style={styles.gap}>
@@ -120,7 +125,7 @@ export default function PremiumScreen() {
         (!configured ? (
           <Notice icon="info" message="In-app purchases aren’t set up in this build." />
         ) : offers.isLoading ? (
-          <ActivityIndicator color={colors.accent} />
+          <PlanOptionsSkeleton />
         ) : offers.error || !offers.data?.length ? (
           <Notice
             icon="warning"

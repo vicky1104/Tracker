@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View, type TextInputProps } from 'react-native';
 
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/theme';
 import { MIN_TOUCH, radius, spacing, typography } from '@/theme/tokens';
 
@@ -30,7 +31,10 @@ export function Chip({
   const tint = color ?? colors.accent;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        haptics.selection();
+        onPress();
+      }}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={accessibilityLabel ?? label}
@@ -85,7 +89,10 @@ export function SegmentedControl<T extends string>({
         return (
           <Pressable
             key={o.value}
-            onPress={() => onChange(o.value)}
+            onPress={() => {
+              if (!selected) haptics.selection();
+              onChange(o.value);
+            }}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             style={[styles.segment, selected && { backgroundColor: colors.surface, ...shadow }]}>
@@ -245,7 +252,10 @@ export function SwitchRow({
       </View>
       <Switch
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={(v) => {
+          haptics.toggle(v);
+          onValueChange(v);
+        }}
         disabled={disabled}
         trackColor={{ true: colors.accent, false: colors.borderStrong }}
         accessibilityLabel={title}
@@ -281,7 +291,10 @@ export function Stepper({
         if (e.nativeEvent.actionName === 'decrement') onChange(Math.max(min, value - 1));
       }}>
       <Pressable
-        onPress={() => onChange(Math.max(min, value - 1))}
+        onPress={() => {
+          haptics.selection();
+          onChange(Math.max(min, value - 1));
+        }}
         disabled={value <= min}
         style={styles.stepButton}
         hitSlop={6}>
@@ -291,7 +304,10 @@ export function Stepper({
         {value}
       </Text>
       <Pressable
-        onPress={() => onChange(Math.min(max, value + 1))}
+        onPress={() => {
+          haptics.selection();
+          onChange(Math.min(max, value + 1));
+        }}
         disabled={value >= max}
         style={styles.stepButton}
         hitSlop={6}>
